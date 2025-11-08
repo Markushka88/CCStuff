@@ -1,0 +1,161 @@
+--[[
+      Библиотека векторной графики для ComputerCraft
+      1.4, поддерживает прямоугольники и линии (по
+      алгоритму Брезенхэма).
+
+      Пример:
+
+      VectorGraphics = dofile("VectorGraphics")
+
+      local vg = VectorGraphics.new()
+
+      vg:addRectangle(10, 5, 30, 15, "*")
+      vg:addLine(5, 5, 50, 25, "+")
+
+      vg:draw()
+]]
+
+-----------------------------------------------------------------------------------------------------------------------------------
+-- Объявление библиотеки
+
+local VectorGraphics = {}
+
+-----------------------------------------------------------------------------------------------------------------------------------
+-- Создание нового объекта (экрана), на котором мы будем работать
+
+function VectorGraphics.new(monitor)
+    local obj = {} -- объявляем объект в виде обычного массива
+    setmetatable(obj, { __index = VectorGraphics }) -- при обнаружении неизвестной в самом массиве функции, ищем её в VectorGraphics
+    
+    obj.monitor = monitor or term -- определяем экран (если ничего не указано - экраном будет term)
+    obj.width, obj.height = obj.monitor.getSize() -- получаем размер экрана
+    obj.objects = {} -- создаём массив с объектами
+    
+    obj.baseWidth = 100  -- базовая ширина системы координат
+    obj.baseHeight = 50  -- базовая высота системы координат
+    obj.scaleX = obj.width / obj.baseWidth -- вычисляем масштаб по ширине
+    obj.scaleY = obj.height / obj.baseHeight -- вычисляем масштаб по высоте
+    
+    return obj -- возвращаем объект
+end
+
+-----------------------------------------------------------------------------------------------------------------------------------
+-- Добавление прямоугольника в массив с объектами
+
+function VectorGraphics:addRectangle(x, y, w, h, char)
+    --[[
+        x - откуда начинать рисование прямоугольника по X
+        y - откуда начинать рисование прямоугольника по Y
+        w - ширина прямоугольника
+        h - высота прямоугольника
+        char - каким символом прямоугольник
+    ]]--
+
+    table.insert(self.objects, {
+        type = "rectangle", x = x, y = y, w = w, h = h, char = char or "#"
+    })
+end
+
+-----------------------------------------------------------------------------------------------------------------------------------
+-- Добавление линии в массив с объектами
+
+function VectorGraphics:addLine(x1, y1, x2, y2, char)
+    --[[
+        x1 - откуда начинать рисование линии по X
+        y1 - откуда начинать рисование линии по Y
+        x2 - где заканчивать рисование линии по X
+        y2 - где заканчивать рисование линии по Y
+        char - каким символом заполнить линию
+    ]]-- 
+
+    table.insert(self.objects, {
+        type = "line", x1 = x1, y1 = y1, x2 = x2, y2 = y2, char = char or "#"
+    })
+end
+
+-----------------------------------------------------------------------------------------------------------------------------------
+-- Рисование всех объектов на экране
+
+function VectorGraphics:draw()
+    self.monitor.clear() -- очищаем экран
+    for _, obj in ipairs(self.objects) do -- перебираем все объекты из массива
+        if obj.type == "rectangle" then -- работа с прямоугольниками
+            self:drawRectangle(obj) -- рисуем прямоугольник
+        elseif obj.type == "line" then -- работа с линиями
+            self:drawLine(obj) -- рисуем линию
+        end
+    end
+end
+
+-----------------------------------------------------------------------------------------------------------------------------------
+-- Рисование прямоугольника
+
+function VectorGraphics:drawRectangle(obj)
+    local x = math.floor(obj.x * self.scaleX) -- масштабируем координату X
+    local y = math.floor(obj.y * self.scaleY) -- масштабируем координату Y
+    local w = math.floor(obj.w * self.scaleX) -- масштабируем ширину прямоугольника
+    local h = math.floor(obj.h * self.scaleY) -- масштабируем высоту прямоугольника
+    
+    for i = 0, h - 1 do -- начинаем отрисовку
+        self.monitor.setCursorPos(x, y + i)
+        self.monitor.write(string.rep(obj.char, w))
+    end
+end
+
+-----------------------------------------------------------------------------------------------------------------------------------
+-- Рисование линии
+
+function VectorGraphics:drawLine(obj)
+    local x1 = math.floor(obj.x1 * self.scaleX) -- масштабируем координату начала по X
+    local y1 = math.floor(obj.y1 * self.scaleY) -- масштабируем координату начала по Y
+    local x2 = math.floor(obj.x2 * self.scaleX) -- масштабируем координату конца по X
+    local y2 = math.floor(obj.y2 * self.scaleY) -- масштабируем координату конца по Y
+    
+    -- Алгоритм Брезенхэма.
+    local dx = math.abs(x2 - x1)
+    local dy = math.abs(y2 - y1)
+    local sx = x1 < x2 and 1 or -1
+    local sy = y1 < y2 and 1 or -1
+    local err = dx - dy
+    
+    while true do -- начинаем отрисовку
+        self.monitor.setCursorPos(x1, y1)
+        self.monitor.write(obj.char)
+        
+        if x1 == x2 and y1 == y2 then break end
+        local e2 = err * 2
+        if e2 > -dy then err = err - dy; x1 = x1 + sx end
+        if e2 < dx then err = err + dx; y1 = y1 + sy end
+    end
+end
+
+-----------------------------------------------------------------------------------------------------------------------------------
+-- Сохранение всех имеющихся объектов в файл
+
+function VectorGraphics:saveToFile(filename)
+    local file = fs.open(filename, "w")
+    if file then
+        file.write(textutils.serialize(self.objects))
+        file.close()
+    end
+end
+
+-----------------------------------------------------------------------------------------------------------------------------------
+-- Загрузка объектов из файла
+
+function VectorGraphics:loadFromFile(filename)
+    if fs.exists(filename) then
+        local file = fs.open(filename, "r")
+        if file then
+            self.objects = textutils.unserialize(file.readAll()) or {}
+            file.close()
+        end
+    end
+end
+
+-----------------------------------------------------------------------------------------------------------------------------------
+-- Возвращаем библиотеку
+
+return VectorGraphics
+
+-----------------------------------------------------------------------------------------------------------------------------------

@@ -1,2 +1,2 @@
 # CCStuff
-Рандомные программы для ComputerCraft.
+Рандомные программы для ComputerCraft

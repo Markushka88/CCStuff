@@ -1,0 +1,34 @@
+-- Prostoj redaktor piksel'noj grafiki dlya ComputerCraft
+local VectorGraphics = dofile("VectorGraphics")
+
+local monitor = term
+local vg = VectorGraphics.new(monitor)
+local char = "#"
+
+local function drawUI()
+    term.setCursorPos(1, 1)
+    term.clearLine()
+    term.write("[LMB] Draw  [C] Clear  [S] Save  [O] Open  [Q] Quit")
+end
+
+drawUI()
+local running = true
+
+while running do
+    local event, button, x, y = os.pullEvent()
+    
+    if event == "key" then
+        if button == keys.q then running = false
+        elseif button == keys.c then vg.objects = {} monitor.clear() drawUI()
+        elseif button == keys.s then vg:saveToFile("image.dat")
+        elseif button == keys.o then vg:loadFromFile("image.dat") monitor.clear() vg:draw() drawUI()
+        end
+    elseif event == "mouse_click" or event == "mouse_drag" then
+        vg:addRectangle(x / vg.scaleX, y / vg.scaleY, 3, 3, char)
+        vg:draw()
+        drawUI()
+    end
+end
+
+term.clear()
+term.setCursorPos(1, 1)

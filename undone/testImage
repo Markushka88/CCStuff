@@ -1,0 +1,7 @@
+VectorGraphics = dofile("VectorGraphics")
+
+local monitor = peripheral.wrap("back:green") -- Или другой монитор
+local vg = VectorGraphics.new(monitor)
+
+vg:loadFromFile("image.dat")
+vg:draw()

@@ -1,0 +1,7 @@
+local monitor = peripheral.wrap("back:green") -- Или другой монитор
+local vg = dofile("VectorGraphics").new(monitor)
+
+vg:addRectangle(10, 5, 30, 15, "*")
+vg:addLine(5, 5, 50, 25, "+")
+
+vg:draw()
